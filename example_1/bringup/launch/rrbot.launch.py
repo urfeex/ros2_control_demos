@@ -17,6 +17,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.conditions import IfCondition
 from launch.substitutions import Command, LaunchConfiguration, PathSubstitution
+from launch_ros.parameter_descriptions import ParameterFile
 
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
@@ -30,14 +31,20 @@ def generate_launch_description():
                 default_value="true",
                 description="Start RViz2 automatically with this launch file.",
             ),
+            DeclareLaunchArgument(
+                "tf_prefix",
+                default_value="",
+                description="TF prefix to use",
+            ),
             # Control node
             Node(
                 package="controller_manager",
                 executable="ros2_control_node",
                 parameters=[
-                    PathSubstitution(FindPackageShare("ros2_control_demo_example_1"))
+                    {"tf_prefix": LaunchConfiguration("tf_prefix")},
+                    ParameterFile(PathSubstitution(FindPackageShare("ros2_control_demo_example_1"))
                     / "config"
-                    / "rrbot_controllers.yaml"
+                    / "rrbot_controllers.yaml", allow_substs=True)
                 ],
                 output="both",
             ),
@@ -55,6 +62,9 @@ def generate_launch_description():
                                 PathSubstitution(FindPackageShare("ros2_control_demo_example_1"))
                                 / "urdf"
                                 / "rrbot.urdf.xacro",
+                                " ",
+                                "prefix:=",
+                                LaunchConfiguration("tf_prefix"),
                             ]
                         )
                     }
@@ -82,10 +92,6 @@ def generate_launch_description():
                 executable="spawner",
                 arguments=[
                     "forward_position_controller",
-                    "--param-file",
-                    PathSubstitution(FindPackageShare("ros2_control_demo_example_1"))
-                    / "config"
-                    / "rrbot_controllers.yaml",
                 ],
             ),
         ]
